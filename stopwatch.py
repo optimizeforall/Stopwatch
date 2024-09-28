@@ -337,10 +337,10 @@ class Stopwatch(QWidget):
                 prev_item.setBackground(QColor(0, 0, 0, 0))
                 prev_item.setText(prev_item.text().replace(" (working)", ""))
         
-        self.current_task = item.data(Qt.ItemDataRole.UserRole)
+        self.current_task = item.text().split(' - ')[0]
         self.task_timer.restart()
         item.setBackground(QColor(144, 238, 144, 100))  # Light green
-        item.setText(f"{item.text().split(' - ')[0]} - {self.formatDuration(self.task_timers[self.current_task])} (working)")
+        item.setText(f"{self.current_task} - {self.formatDuration(self.task_timers[self.current_task])} (working)")
         
         self.updateTaskDurations()
 
