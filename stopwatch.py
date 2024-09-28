@@ -42,28 +42,36 @@ class Stopwatch(QWidget):
         """)
         
         # Create widgets
-        self.time_label = QLabel('00:00:00.000')
+        self.time_label = QLabel('00:00:00')
         self.time_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.time_label.setFont(QFont('Arial', 24))
+        font = QFont('Arial', 36)
+        font.setBold(True)
+        self.time_label.setFont(font)
         
         self.start_stop_button = QPushButton('Start')
         self.split_button = QPushButton('Split')
         self.split_button.setEnabled(False)
+        self.end_session_button = QPushButton('End Session')
+        self.end_session_button.setEnabled(False)
         self.new_session_button = QPushButton('Start New Session')
         self.view_sessions_button = QPushButton('View Sessions')
         
         self.split_list = QListWidget()
         
         # Create layouts
-        button_layout = QHBoxLayout()
-        button_layout.addWidget(self.start_stop_button)
-        button_layout.addWidget(self.split_button)
-        button_layout.addWidget(self.new_session_button)
-        button_layout.addWidget(self.view_sessions_button)
+        button_layout1 = QHBoxLayout()
+        button_layout1.addWidget(self.start_stop_button)
+        button_layout1.addWidget(self.split_button)
+        button_layout1.addWidget(self.end_session_button)
+        
+        button_layout2 = QHBoxLayout()
+        button_layout2.addWidget(self.new_session_button)
+        button_layout2.addWidget(self.view_sessions_button)
         
         main_layout = QVBoxLayout()
         main_layout.addWidget(self.time_label)
-        main_layout.addLayout(button_layout)
+        main_layout.addLayout(button_layout1)
+        main_layout.addLayout(button_layout2)
         main_layout.addWidget(self.split_list)
         
         self.setLayout(main_layout)
@@ -79,6 +87,7 @@ class Stopwatch(QWidget):
         # Connect buttons
         self.start_stop_button.clicked.connect(self.startStop)
         self.split_button.clicked.connect(self.split)
+        self.end_session_button.clicked.connect(self.endSession)
         self.new_session_button.clicked.connect(self.newSession)
         self.view_sessions_button.clicked.connect(self.viewSessions)
         
@@ -94,11 +103,13 @@ class Stopwatch(QWidget):
                 self.running = True
                 self.start_stop_button.setText('Stop')
                 self.split_button.setEnabled(True)
+                self.end_session_button.setEnabled(True)
         else:
             self.timer.stop()
             self.running = False
             self.start_stop_button.setText('Start')
             self.split_button.setEnabled(False)
+            self.end_session_button.setEnabled(True)
         
     def updateTime(self):
         self.time += 1
@@ -125,34 +136,27 @@ class Stopwatch(QWidget):
         self.running = False
         self.start_stop_button.setText('Start')
         self.split_button.setEnabled(False)
+        self.end_session_button.setEnabled(False)
         
-        title, ok = QInputDialog.getText(self, 'Session Title', 'Enter session title:')
-        if ok:
-            description, ok = QInputDialog.getText(self, 'Session Description', 'Enter session description:')
-            if ok:
-                session_item = QListWidgetItem(f'Session: {title} - {description}')
-                self.split_list.insertItem(0, session_item)
+        if self.session_title:
+            self.saveSession()
+            self.time = 0
+            self.split_time = 0
+            self.splits = []
+            self.split_list.clear()
+            self.updateDisplay()
+            self.session_title = ""
+            self.session_description = ""
         
     def newSession(self):
-        if self.running:
-            self.timer.stop()
-            self.running = False
-        self.saveSession()
-        self.time = 0
-        self.split_time = 0
-        self.splits = []
-        self.split_list.clear()
-        self.updateDisplay()
-        self.session_title = ""
-        self.session_description = ""
-        self.start_stop_button.setText('Start')
-        self.split_button.setEnabled(False)
+        self.endSession()
+        self.getSessionInfo()
         
     def formatTime(self, ms):
         hours, remainder = divmod(ms, 3600000)
         minutes, remainder = divmod(remainder, 60000)
-        seconds, milliseconds = divmod(remainder, 1000)
-        return f'{hours:02d}:{minutes:02d}:{seconds:02d}.{milliseconds:03d}'
+        seconds, _ = divmod(remainder, 1000)
+        return f'{hours:02d}:{minutes:02d}:{seconds:02d}'
 
     def getSessionInfo(self):
         dialog = QDialog(self)
