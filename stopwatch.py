@@ -329,6 +329,11 @@ class Stopwatch(QWidget):
         wasting_time_item = self.task_list.findItems("Wasting Time", Qt.MatchFlag.MatchExactly)[0]
         self.task_list.takeItem(self.task_list.row(wasting_time_item))
         self.task_list.addItem(wasting_time_item)
+        
+        # Move "Wasting Time" to the bottom
+        wasting_time_item = self.task_list.findItems("Wasting Time", Qt.MatchFlag.MatchExactly)[0]
+        self.task_list.takeItem(self.task_list.row(wasting_time_item))
+        self.task_list.addItem(wasting_time_item)
 
     def addTask(self):
         task, ok = QInputDialog.getText(self, "Add Task", "Enter new task:")
