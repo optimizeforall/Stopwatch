@@ -166,11 +166,13 @@ class Stopwatch(QWidget):
         self.split_list.itemDoubleClicked.connect(self.editSplitDescription)
 
     def editSplitDescription(self, item):
-        current_description = item.data(Qt.ItemDataRole.UserRole)
+        current_text = item.text()
+        split_parts = current_text.split(' - ')
+        current_description = split_parts[-1] if len(split_parts) > 1 else ""
+        
         new_description, ok = QInputDialog.getText(self, 'Edit Split Description', 'Enter new description:', text=current_description)
         if ok:
-            split_parts = item.text().split(' - ')
-            new_text = f"{split_parts[0]} - {new_description}"
+            new_text = f"{' - '.join(split_parts[:-1])} - {new_description}"
             item.setText(new_text)
             item.setData(Qt.ItemDataRole.UserRole, new_description)
             
@@ -212,9 +214,9 @@ class Stopwatch(QWidget):
         
         form_layout = QFormLayout()
         title_input = QLineEdit()
-        title_input.setFixedHeight(30)
+        title_input.setFixedHeight(25)
         description_input = QLineEdit()
-        description_input.setFixedHeight(30)
+        description_input.setFixedHeight(25)
         form_layout.addRow("Session Title:", title_input)
         form_layout.addRow("Session Description:", description_input)
         layout.addLayout(form_layout)
@@ -250,6 +252,8 @@ class Stopwatch(QWidget):
             self.session_title = title_input.text()
             self.session_description = description_input.text()
             self.tasks = [task_list.item(i).text() for i in range(task_list.count())]
+            if "Wasting Time" not in self.tasks:
+                self.tasks.append("Wasting Time")
             self.task_timers = {task: 0 for task in self.tasks}  # Initialize task timers
             self.updateTaskList()
 
@@ -347,7 +351,7 @@ class Stopwatch(QWidget):
         self.current_task = item.data(Qt.ItemDataRole.UserRole)
         self.task_timer.restart()
         item.setBackground(QColor(144, 238, 144, 100))  # Light green
-        item.setText(f"{item.text()} (working)")
+        item.setText(f"{item.text().split(' - ')[0]} - {self.formatDuration(self.task_timers[self.current_task])} (working)")
         
         self.updateTaskDurations()
 
@@ -384,7 +388,8 @@ class Stopwatch(QWidget):
             if current_item:
                 self.selectTask(current_item)
                 current_item.setBackground(QColor(144, 238, 144, 100))  # Light green
-                current_item.setCheckState(Qt.CheckState.Checked)
+                if current_item.flags() & Qt.ItemFlag.ItemIsUserCheckable:
+                    current_item.setCheckState(Qt.CheckState.Checked)
         super().keyPressEvent(event)
 
     def taskChanged(self, item):
