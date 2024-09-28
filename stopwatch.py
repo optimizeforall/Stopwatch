@@ -154,11 +154,6 @@ class Stopwatch(QWidget):
         seconds, milliseconds = divmod(remainder, 1000)
         return f'{hours:02d}:{minutes:02d}:{seconds:02d}.{milliseconds:03d}'
 
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    stopwatch = Stopwatch()
-    stopwatch.show()
-    sys.exit(app.exec())
     def getSessionInfo(self):
         dialog = QDialog(self)
         dialog.setWindowTitle("New Session")
@@ -182,6 +177,7 @@ if __name__ == '__main__':
             self.session_title = title_input.text()
             self.session_description = description_input.text()
             self.split_list.addItem(f"Session: {self.session_title} - {self.session_description}")
+
     def saveSession(self):
         if self.session_title:
             filename = f"data/{self.session_title.replace(' ', '_')}.csv"
@@ -192,6 +188,7 @@ if __name__ == '__main__':
                 writer.writerow(["Split Number", "Split Time", "Total Time", "Description"])
                 for i, (split_time, total_time, description) in enumerate(self.splits, 1):
                     writer.writerow([i, self.formatTime(split_time), self.formatTime(total_time), description])
+
     def viewSessions(self):
         sessions_dialog = QDialog(self)
         sessions_dialog.setWindowTitle("Saved Sessions")
@@ -229,3 +226,9 @@ if __name__ == '__main__':
         sessions_list.itemClicked.connect(show_session_details)
         
         sessions_dialog.exec()
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    stopwatch = Stopwatch()
+    stopwatch.show()
+    sys.exit(app.exec())
