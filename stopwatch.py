@@ -221,6 +221,7 @@ class Stopwatch(QWidget):
             self.session_title = title_input.text()
             self.session_description = description_input.text()
             self.tasks = [task_list.item(i).text() for i in range(task_list.count())]
+            self.task_timers = {task: 0 for task in self.tasks}  # Initialize task timers
             self.updateTaskList()
 
     def saveSession(self):
@@ -291,6 +292,8 @@ class Stopwatch(QWidget):
             self.tasks.append(task)
             self.task_timers[task] = 0
             self.updateTaskList()
+            if not self.current_task:
+                self.selectTask(self.task_list.item(self.task_list.count() - 1))
 
     def selectTask(self, item):
         if self.current_task:
