@@ -4,8 +4,8 @@ import os
 from PyQt6.QtWidgets import (QApplication, QWidget, QPushButton, QVBoxLayout, QHBoxLayout, 
                              QLabel, QLineEdit, QListWidget, QListWidgetItem, QInputDialog,
                              QDialog, QFormLayout, QStackedWidget)
-from PyQt6.QtCore import QTimer, Qt
-from PyQt6.QtGui import QFont
+from PyQt6.QtCore import QTimer, Qt, QElapsedTimer
+from PyQt6.QtGui import QFont, QColor
 
 class Stopwatch(QWidget):
     def __init__(self):
@@ -14,6 +14,9 @@ class Stopwatch(QWidget):
         self.session_title = ""
         self.session_description = ""
         self.tasks = []
+        self.task_timers = {}
+        self.current_task = None
+        self.task_timer = QElapsedTimer()
         
     def initUI(self):
         self.setWindowTitle('Stopwatch')
@@ -276,12 +279,56 @@ class Stopwatch(QWidget):
             item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
             item.setCheckState(Qt.CheckState.Unchecked)
             self.task_list.addItem(item)
+        
+        if self.tasks and not self.current_task:
+            self.selectTask(self.task_list.item(0))
+        
+        self.task_list.itemClicked.connect(self.selectTask)
 
     def addTask(self):
         task, ok = QInputDialog.getText(self, "Add Task", "Enter new task:")
         if ok and task:
             self.tasks.append(task)
+            self.task_timers[task] = 0
             self.updateTaskList()
+
+    def selectTask(self, item):
+        if self.current_task:
+            self.task_timers[self.current_task] += self.task_timer.elapsed()
+            prev_item = self.task_list.findItems(self.current_task, Qt.MatchFlag.MatchExactly)[0]
+            prev_item.setBackground(QColor(0, 0, 0, 0))
+        
+        self.current_task = item.text()
+        self.task_timer.restart()
+        item.setBackground(QColor(100, 100, 255, 100))
+        
+        self.updateTaskDurations()
+
+    def updateTaskDurations(self):
+        for i in range(self.task_list.count()):
+            item = self.task_list.item(i)
+            task = item.text()
+            duration = self.task_timers[task]
+            if task == self.current_task:
+                duration += self.task_timer.elapsed()
+            item.setText(f"{task} - {self.formatDuration(duration)}")
+
+    def formatDuration(self, ms):
+        seconds = ms // 1000
+        minutes, seconds = divmod(seconds, 60)
+        hours, minutes = divmod(minutes, 60)
+        
+        if hours > 0:
+            return f"{hours}h{minutes:02d}m{seconds:02d}s"
+        elif minutes > 0:
+            return f"{minutes}m{seconds:02d}s"
+        else:
+            return f"{seconds}s"
+
+    def updateTime(self):
+        self.time += 1
+        self.updateDisplay()
+        self.updateTaskDurations()
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
