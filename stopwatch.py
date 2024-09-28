@@ -276,9 +276,10 @@ class Stopwatch(QWidget):
     def updateTaskList(self):
         self.task_list.clear()
         for task in self.tasks:
-            item = QListWidgetItem(task)
+            item = QListWidgetItem(f"{task} - 0s")
             item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
             item.setCheckState(Qt.CheckState.Unchecked)
+            item.setData(Qt.ItemDataRole.UserRole, task)  # Store original task name
             self.task_list.addItem(item)
         
         if self.tasks and not self.current_task:
@@ -298,10 +299,11 @@ class Stopwatch(QWidget):
     def selectTask(self, item):
         if self.current_task:
             self.task_timers[self.current_task] += self.task_timer.elapsed()
-            prev_item = self.task_list.findItems(self.current_task, Qt.MatchFlag.MatchExactly)[0]
-            prev_item.setBackground(QColor(0, 0, 0, 0))
+            prev_items = self.task_list.findItems(self.current_task, Qt.MatchFlag.MatchContains)
+            if prev_items:
+                prev_items[0].setBackground(QColor(0, 0, 0, 0))
         
-        self.current_task = item.text()
+        self.current_task = item.data(Qt.ItemDataRole.UserRole)
         self.task_timer.restart()
         item.setBackground(QColor(100, 100, 255, 100))
         
@@ -310,7 +312,7 @@ class Stopwatch(QWidget):
     def updateTaskDurations(self):
         for i in range(self.task_list.count()):
             item = self.task_list.item(i)
-            task = item.text()
+            task = item.data(Qt.ItemDataRole.UserRole)
             duration = self.task_timers[task]
             if task == self.current_task:
                 duration += self.task_timer.elapsed()
