@@ -1,7 +1,8 @@
 import sys
-from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QTextEdit, QLabel
+from PyQt6.QtWidgets import (QApplication, QWidget, QPushButton, QVBoxLayout, QHBoxLayout, 
+                             QLabel, QLineEdit, QListWidget, QListWidgetItem, QInputDialog)
 from PyQt6.QtCore import QTimer, Qt
-from PyQt6.QtGui import QFont, QPalette, QColor
+from PyQt6.QtGui import QFont
 
 class Stopwatch(QWidget):
     def __init__(self):
@@ -10,7 +11,7 @@ class Stopwatch(QWidget):
         
     def initUI(self):
         self.setWindowTitle('Stopwatch')
-        self.setGeometry(300, 300, 400, 500)
+        self.setGeometry(300, 300, 500, 600)
         
         # Set dark theme
         self.setStyleSheet("""
@@ -28,7 +29,7 @@ class Stopwatch(QWidget):
             QPushButton:hover {
                 background-color: #4d4d4d;
             }
-            QTextEdit {
+            QLineEdit, QListWidget {
                 background-color: #3d3d3d;
                 color: #ffffff;
                 border: none;
@@ -40,26 +41,25 @@ class Stopwatch(QWidget):
         self.time_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.time_label.setFont(QFont('Arial', 24))
         
-        self.split_label = QLabel('Last Split: 00:00:00.000')
-        self.split_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        
         self.start_stop_button = QPushButton('Start')
         self.split_button = QPushButton('Split')
         self.split_button.setEnabled(False)
+        self.end_session_button = QPushButton('End Session')
+        self.new_session_button = QPushButton('New Session')
         
-        self.description = QTextEdit()
-        self.description.setPlaceholderText("Describe what was done in this time...")
+        self.split_list = QListWidget()
         
         # Create layouts
         button_layout = QHBoxLayout()
         button_layout.addWidget(self.start_stop_button)
         button_layout.addWidget(self.split_button)
+        button_layout.addWidget(self.end_session_button)
+        button_layout.addWidget(self.new_session_button)
         
         main_layout = QVBoxLayout()
         main_layout.addWidget(self.time_label)
-        main_layout.addWidget(self.split_label)
         main_layout.addLayout(button_layout)
-        main_layout.addWidget(self.description)
+        main_layout.addWidget(self.split_list)
         
         self.setLayout(main_layout)
         
@@ -69,10 +69,13 @@ class Stopwatch(QWidget):
         self.time = 0
         self.running = False
         self.split_time = 0
+        self.splits = []
         
         # Connect buttons
         self.start_stop_button.clicked.connect(self.startStop)
         self.split_button.clicked.connect(self.split)
+        self.end_session_button.clicked.connect(self.endSession)
+        self.new_session_button.clicked.connect(self.newSession)
         
     def startStop(self):
         if not self.running:
@@ -99,7 +102,32 @@ class Stopwatch(QWidget):
         self.split_time = self.time
         split_str = self.formatTime(current_split)
         total_str = self.formatTime(self.time)
-        self.split_label.setText(f'Last Split: {split_str} (Total: {total_str})')
+        
+        description, ok = QInputDialog.getText(self, 'Split Description', 'Enter split description:')
+        if ok:
+            split_item = QListWidgetItem(f'Split {len(self.splits) + 1}: {split_str} (Total: {total_str}) - {description}')
+            self.split_list.addItem(split_item)
+            self.splits.append((current_split, self.time, description))
+        
+    def endSession(self):
+        self.timer.stop()
+        self.running = False
+        self.start_stop_button.setText('Start')
+        self.split_button.setEnabled(False)
+        
+        title, ok = QInputDialog.getText(self, 'Session Title', 'Enter session title:')
+        if ok:
+            description, ok = QInputDialog.getText(self, 'Session Description', 'Enter session description:')
+            if ok:
+                session_item = QListWidgetItem(f'Session: {title} - {description}')
+                self.split_list.insertItem(0, session_item)
+        
+    def newSession(self):
+        self.time = 0
+        self.split_time = 0
+        self.splits = []
+        self.split_list.clear()
+        self.updateDisplay()
         
     def formatTime(self, ms):
         hours, remainder = divmod(ms, 3600000)
