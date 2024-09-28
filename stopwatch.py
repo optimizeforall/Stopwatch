@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (QApplication, QWidget, QPushButton, QVBoxLayout, QH
                              QLabel, QLineEdit, QListWidget, QListWidgetItem, QInputDialog,
                              QDialog, QFormLayout, QStackedWidget)
 from PyQt6.QtCore import QTimer, Qt, QElapsedTimer
-from PyQt6.QtGui import QFont, QColor
+from PyQt6.QtGui import QFont, QColor, QPalette
 
 class Stopwatch(QWidget):
     def __init__(self):
@@ -20,30 +20,31 @@ class Stopwatch(QWidget):
         
     def initUI(self):
         self.setWindowTitle('Stopwatch')
-        self.setGeometry(300, 300, 500, 600)
+        self.setGeometry(300, 300, 600, 800)
         
         # Set dark theme
         self.setStyleSheet("""
             QWidget {
                 background-color: #2b2b2b;
                 color: #ffffff;
+                font-family: 'Segoe UI', Arial, sans-serif;
             }
-            QPushButton {
+            QPushButton, QLineEdit, QListWidget {
                 background-color: #3d3d3d;
                 color: #ffffff;
                 border: none;
+                border-radius: 5px;
                 padding: 10px;
                 margin: 5px;
             }
             QPushButton:hover {
                 background-color: #4d4d4d;
             }
-            QLineEdit, QListWidget {
-                background-color: #3d3d3d;
-                color: #ffffff;
-                border: none;
+            QListWidget::item:selected {
+                background-color: #4d4d4d;
             }
         """)
+        self.setContentsMargins(20, 20, 20, 20)
         
         # Create widgets
         self.time_label = QLabel('00:00:00')
@@ -84,7 +85,7 @@ class Stopwatch(QWidget):
         task_layout.addWidget(self.task_list)
         task_layout.addWidget(self.add_task_button)
         
-        list_layout = QHBoxLayout()
+        list_layout = QVBoxLayout()
         list_layout.addLayout(split_layout)
         list_layout.addLayout(task_layout)
         
@@ -114,26 +115,34 @@ class Stopwatch(QWidget):
         # Ensure data directory exists
         os.makedirs('data', exist_ok=True)
         
+        # Set up keyboard shortcuts
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        
     def startStop(self):
         if not self.running:
             if self.time == 0 and not self.session_title:
                 self.getSessionInfo()
             if self.session_title:
-                self.timer.start(1)
+                self.timer.start(10)  # Update every 10ms for smoother display
                 self.running = True
                 self.start_stop_button.setText('Stop')
                 self.split_button.setEnabled(True)
                 self.end_session_button.setEnabled(True)
+                if self.current_task:
+                    self.task_timer.start()
         else:
             self.timer.stop()
             self.running = False
             self.start_stop_button.setText('Start')
             self.split_button.setEnabled(False)
             self.end_session_button.setEnabled(True)
+            if self.current_task:
+                self.task_timers[self.current_task] += self.task_timer.elapsed()
         
     def updateTime(self):
-        self.time += 1
+        self.time += 10  # Increment by 10ms
         self.updateDisplay()
+        self.updateTaskDurations()
         
     def updateDisplay(self):
         time_str = self.formatTime(self.time)
@@ -142,14 +151,15 @@ class Stopwatch(QWidget):
     def split(self):
         current_split = self.time - self.split_time
         self.split_time = self.time
-        split_str = self.formatTime(current_split)
-        total_str = self.formatTime(self.time)
+        split_str = self.formatDuration(current_split)
+        total_str = self.formatDuration(self.time)
         
         description, ok = QInputDialog.getText(self, 'Split Description', 'Enter split description:')
         if ok:
             split_item = QListWidgetItem(f'Split {len(self.splits) + 1}: {split_str} (Total: {total_str}) - {description}')
             self.split_list.addItem(split_item)
             self.splits.append((current_split, self.time, description))
+            split_item.setFlags(split_item.flags() | Qt.ItemFlag.ItemIsEditable)
         
     def endSession(self):
         self.timer.stop()
@@ -175,8 +185,8 @@ class Stopwatch(QWidget):
     def formatTime(self, ms):
         hours, remainder = divmod(ms, 3600000)
         minutes, remainder = divmod(remainder, 60000)
-        seconds, _ = divmod(remainder, 1000)
-        return f'{hours:02d}:{minutes:02d}:{seconds:02d}'
+        seconds, milliseconds = divmod(remainder, 1000)
+        return f'{hours:02d}:{minutes:02d}:{seconds:02d}.{milliseconds:03d}'
 
     def getSessionInfo(self):
         dialog = QDialog(self)
@@ -277,7 +287,7 @@ class Stopwatch(QWidget):
         self.task_list.clear()
         for task in self.tasks:
             item = QListWidgetItem(f"{task} - 0s")
-            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsEditable)
             item.setCheckState(Qt.CheckState.Unchecked)
             item.setData(Qt.ItemDataRole.UserRole, task)  # Store original task name
             self.task_list.addItem(item)
@@ -286,6 +296,7 @@ class Stopwatch(QWidget):
             self.selectTask(self.task_list.item(0))
         
         self.task_list.itemClicked.connect(self.selectTask)
+        self.task_list.itemChanged.connect(self.taskChanged)
 
     def addTask(self):
         task, ok = QInputDialog.getText(self, "Add Task", "Enter new task:")
@@ -314,7 +325,7 @@ class Stopwatch(QWidget):
             item = self.task_list.item(i)
             task = item.data(Qt.ItemDataRole.UserRole)
             duration = self.task_timers[task]
-            if task == self.current_task:
+            if task == self.current_task and self.running:
                 duration += self.task_timer.elapsed()
             item.setText(f"{task} - {self.formatDuration(duration)}")
 
@@ -330,10 +341,34 @@ class Stopwatch(QWidget):
         else:
             return f"{seconds}s"
 
-    def updateTime(self):
-        self.time += 1
-        self.updateDisplay()
-        self.updateTaskDurations()
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key.Key_Space:
+            self.startStop()
+        elif event.key() == Qt.Key.Key_Tab:
+            self.split()
+        elif event.key() == Qt.Key.Key_Escape:
+            self.endSession()
+        elif event.key() == Qt.Key.Key_Return or event.key() == Qt.Key.Key_Enter:
+            current_item = self.task_list.currentItem()
+            if current_item:
+                self.selectTask(current_item)
+        super().keyPressEvent(event)
+
+    def taskChanged(self, item):
+        if item.checkState() == Qt.CheckState.Checked:
+            item.setBackground(QColor(144, 238, 144, 100))  # Light green
+        else:
+            item.setBackground(QColor(0, 0, 0, 0))  # Transparent
+
+        # Update task name in self.tasks and self.task_timers
+        old_task = item.data(Qt.ItemDataRole.UserRole)
+        new_task = item.text().split(' - ')[0]
+        if old_task != new_task:
+            self.tasks[self.tasks.index(old_task)] = new_task
+            self.task_timers[new_task] = self.task_timers.pop(old_task)
+            item.setData(Qt.ItemDataRole.UserRole, new_task)
+            if self.current_task == old_task:
+                self.current_task = new_task
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
