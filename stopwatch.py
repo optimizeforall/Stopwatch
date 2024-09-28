@@ -13,6 +13,7 @@ class Stopwatch(QWidget):
         self.initUI()
         self.session_title = ""
         self.session_description = ""
+        self.tasks = []
         
     def initUI(self):
         self.setWindowTitle('Stopwatch')
@@ -57,6 +58,9 @@ class Stopwatch(QWidget):
         self.view_sessions_button = QPushButton('View Sessions')
         
         self.split_list = QListWidget()
+        self.task_list = QListWidget()
+        self.add_task_button = QPushButton('+')
+        self.add_task_button.clicked.connect(self.addTask)
         
         # Create layouts
         button_layout1 = QHBoxLayout()
@@ -68,11 +72,24 @@ class Stopwatch(QWidget):
         button_layout2.addWidget(self.new_session_button)
         button_layout2.addWidget(self.view_sessions_button)
         
+        split_layout = QVBoxLayout()
+        split_layout.addWidget(QLabel("Splits"))
+        split_layout.addWidget(self.split_list)
+        
+        task_layout = QVBoxLayout()
+        task_layout.addWidget(QLabel("Tasks"))
+        task_layout.addWidget(self.task_list)
+        task_layout.addWidget(self.add_task_button)
+        
+        list_layout = QHBoxLayout()
+        list_layout.addLayout(split_layout)
+        list_layout.addLayout(task_layout)
+        
         main_layout = QVBoxLayout()
         main_layout.addWidget(self.time_label)
         main_layout.addLayout(button_layout1)
         main_layout.addLayout(button_layout2)
-        main_layout.addWidget(self.split_list)
+        main_layout.addLayout(list_layout)
         
         self.setLayout(main_layout)
         
@@ -165,7 +182,13 @@ class Stopwatch(QWidget):
         title_input = QLineEdit()
         description_input = QLineEdit()
         layout.addRow("Session Title:", title_input)
-        layout.addRow("Session Description:", description_input)
+        layout.addRow("What tasks do you want to finish this session?", description_input)
+        
+        task_list = QListWidget()
+        add_task_button = QPushButton("Add Task")
+        layout.addRow(task_list)
+        layout.addRow(add_task_button)
+        
         buttons = QHBoxLayout()
         ok_button = QPushButton("OK")
         cancel_button = QPushButton("Cancel")
@@ -174,13 +197,21 @@ class Stopwatch(QWidget):
         layout.addRow(buttons)
         dialog.setLayout(layout)
         
+        def add_task():
+            task, ok = QInputDialog.getText(dialog, "Add Task", "Enter task:")
+            if ok and task:
+                task_list.addItem(task)
+        
+        add_task_button.clicked.connect(add_task)
         ok_button.clicked.connect(dialog.accept)
         cancel_button.clicked.connect(dialog.reject)
         
         if dialog.exec() == QDialog.DialogCode.Accepted:
             self.session_title = title_input.text()
             self.session_description = description_input.text()
+            self.tasks = [task_list.item(i).text() for i in range(task_list.count())]
             self.split_list.addItem(f"Session: {self.session_title} - {self.session_description}")
+            self.updateTaskList()
 
     def saveSession(self):
         if self.session_title:
@@ -230,6 +261,20 @@ class Stopwatch(QWidget):
         sessions_list.itemClicked.connect(show_session_details)
         
         sessions_dialog.exec()
+
+    def updateTaskList(self):
+        self.task_list.clear()
+        for task in self.tasks:
+            item = QListWidgetItem(task)
+            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+            item.setCheckState(Qt.CheckState.Unchecked)
+            self.task_list.addItem(item)
+
+    def addTask(self):
+        task, ok = QInputDialog.getText(self, "Add Task", "Enter new task:")
+        if ok and task:
+            self.tasks.append(task)
+            self.updateTaskList()
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
