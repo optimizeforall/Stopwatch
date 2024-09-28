@@ -214,9 +214,7 @@ class Stopwatch(QWidget):
         
         form_layout = QFormLayout()
         title_input = QLineEdit()
-        title_input.setFixedHeight(30)
         description_input = QLineEdit()
-        description_input.setFixedHeight(30)
         form_layout.addRow("Session Title:", title_input)
         form_layout.addRow("Session Description:", description_input)
         layout.addLayout(form_layout)
@@ -309,14 +307,9 @@ class Stopwatch(QWidget):
     def updateTaskList(self):
         self.task_list.clear()
         for task in self.tasks:
-            item = QListWidgetItem(f"{task} - 0s")
-            if task != "Wasting Time":
-                item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsEditable)
-                item.setCheckState(Qt.CheckState.Unchecked)
-            else:
-                item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsUserCheckable)
-                item.setForeground(QColor(255, 0, 0, 128))  # Subtle red color
-            item.setData(Qt.ItemDataRole.UserRole, task)  # Store original task name
+            item = QListWidgetItem(task)
+            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+            item.setCheckState(Qt.CheckState.Unchecked)
             self.task_list.addItem(item)
         
         if self.tasks and not self.current_task:
@@ -325,12 +318,6 @@ class Stopwatch(QWidget):
         self.task_list.itemClicked.connect(self.selectTask)
         self.task_list.itemChanged.connect(self.taskChanged)
         
-        # Move "Wasting Time" to the bottom
-        wasting_time_items = self.task_list.findItems("Wasting Time", Qt.MatchFlag.MatchExactly)
-        if wasting_time_items:
-            wasting_time_item = wasting_time_items[0]
-            self.task_list.takeItem(self.task_list.row(wasting_time_item))
-            self.task_list.addItem(wasting_time_item)
 
     def addTask(self):
         task, ok = QInputDialog.getText(self, "Add Task", "Enter new task:")
