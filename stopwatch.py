@@ -17,6 +17,7 @@ class Stopwatch(QWidget):
         self.task_timers = {"Wasting Time": 0}
         self.current_task = None
         self.task_timer = QElapsedTimer()
+        self.session_started = False
         
     def initUI(self):
         self.setWindowTitle('Stopwatch')
@@ -127,6 +128,7 @@ class Stopwatch(QWidget):
             if self.session_title:
                 self.timer.start(10)  # Update every 10ms for smoother display
                 self.running = True
+                self.session_started = True
                 self.start_stop_button.setText('Stop')
                 self.split_button.setEnabled(True)
                 self.end_session_button.setEnabled(True)
@@ -346,14 +348,15 @@ class Stopwatch(QWidget):
         self.updateTaskDurations()
 
     def updateTaskDurations(self):
-        for i in range(self.task_list.count()):
-            item = self.task_list.item(i)
-            task = item.data(Qt.ItemDataRole.UserRole)
-            if task is not None and task in self.task_timers:
-                duration = self.task_timers[task]
-                if task == self.current_task and self.running:
-                    duration += self.task_timer.elapsed()
-                item.setText(f"{task} - {self.formatDuration(duration)}")
+        if self.session_started:
+            for i in range(self.task_list.count()):
+                item = self.task_list.item(i)
+                task = item.data(Qt.ItemDataRole.UserRole)
+                if task is not None and task in self.task_timers:
+                    duration = self.task_timers[task]
+                    if task == self.current_task and self.running:
+                        duration += self.task_timer.elapsed()
+                    item.setText(f"{task} - {self.formatDuration(duration)}")
 
     def formatDuration(self, ms):
         seconds = ms // 1000

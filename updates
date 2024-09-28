@@ -1,0 +1,6 @@
+1. reduce height of session title and session description input boxes so it's inline with size of text, not too small
+2. When double click open an editor to allow to change ONLY the text description, right now it is allow the user to edit the duration with is a constantly changing var
+3. When hitting enter while a task is highlighted should color it green
+4. When a task is focused on highlight it green and append (working) at the end of the row
+5. Add padding between title numbers and stop split end session
+6 In tasks have a thing called wasting time at the bottom in subtle red color, and when clicked on it starts incrementing time like the rest of the tasks, only difference is it's permanent fixture at the bottom, and there is no check box
