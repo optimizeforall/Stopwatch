@@ -178,23 +178,31 @@ class Stopwatch(QWidget):
     def getSessionInfo(self):
         dialog = QDialog(self)
         dialog.setWindowTitle("New Session")
-        layout = QFormLayout()
+        layout = QVBoxLayout()
+        
+        form_layout = QFormLayout()
         title_input = QLineEdit()
         description_input = QLineEdit()
-        layout.addRow("Session Title:", title_input)
-        layout.addRow("What tasks do you want to finish this session?", description_input)
+        form_layout.addRow("Session Title:", title_input)
+        form_layout.addRow("Session Description:", description_input)
+        layout.addLayout(form_layout)
+        
+        task_label = QLabel("Tasks:")
+        layout.addWidget(task_label)
         
         task_list = QListWidget()
-        add_task_button = QPushButton("Add Task")
-        layout.addRow(task_list)
-        layout.addRow(add_task_button)
+        layout.addWidget(task_list)
         
-        buttons = QHBoxLayout()
+        add_task_button = QPushButton("Add Task")
+        layout.addWidget(add_task_button)
+        
+        button_layout = QHBoxLayout()
         ok_button = QPushButton("OK")
         cancel_button = QPushButton("Cancel")
-        buttons.addWidget(ok_button)
-        buttons.addWidget(cancel_button)
-        layout.addRow(buttons)
+        button_layout.addWidget(ok_button)
+        button_layout.addWidget(cancel_button)
+        layout.addLayout(button_layout)
+        
         dialog.setLayout(layout)
         
         def add_task():
@@ -210,7 +218,6 @@ class Stopwatch(QWidget):
             self.session_title = title_input.text()
             self.session_description = description_input.text()
             self.tasks = [task_list.item(i).text() for i in range(task_list.count())]
-            self.split_list.addItem(f"Session: {self.session_title} - {self.session_description}")
             self.updateTaskList()
 
     def saveSession(self):
