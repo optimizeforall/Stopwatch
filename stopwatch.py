@@ -310,6 +310,7 @@ class Stopwatch(QWidget):
             item = QListWidgetItem(task)
             item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
             item.setCheckState(Qt.CheckState.Unchecked)
+            item.setData(Qt.ItemDataRole.UserRole, task)
             self.task_list.addItem(item)
         
         if self.tasks and not self.current_task:
@@ -348,10 +349,11 @@ class Stopwatch(QWidget):
         for i in range(self.task_list.count()):
             item = self.task_list.item(i)
             task = item.data(Qt.ItemDataRole.UserRole)
-            duration = self.task_timers[task]
-            if task == self.current_task and self.running:
-                duration += self.task_timer.elapsed()
-            item.setText(f"{task} - {self.formatDuration(duration)}")
+            if task is not None and task in self.task_timers:
+                duration = self.task_timers[task]
+                if task == self.current_task and self.running:
+                    duration += self.task_timer.elapsed()
+                item.setText(f"{task} - {self.formatDuration(duration)}")
 
     def formatDuration(self, ms):
         seconds = ms // 1000
